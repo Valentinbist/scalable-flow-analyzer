@@ -1,5 +1,9 @@
 package flows
 
+import (
+	"github.com/google/gopacket/layers"
+)
+
 // TCPTimeout in Nanoseconds
 var TCPTimeout int64
 
@@ -51,6 +55,8 @@ type PacketInformation struct {
 	TCPSYN        bool
 	HasTCP        bool
 	HasUDP        bool
+	// todo add tcp options here
+	TCPOptions []layers.TCPOption
 }
 
 // Packet defines a TCP or UDP Packet
@@ -63,27 +69,31 @@ type Packet struct {
 }
 
 type TCPPacket struct {
-	SeqNr uint32
-	AckNr uint32
-	ACK   bool
-	SYN   bool
-	RST   bool
-	FIN   bool
+	SeqNr      uint32
+	AckNr      uint32
+	ACK        bool
+	SYN        bool
+	RST        bool
+	FIN        bool
+	TCPOptions []layers.TCPOption
 }
 
 // Flow is a connection between two application instances.
 type Flow struct {
 	// The client is the one who initiates the connection or based on lower port number
 	// In case no SYN packets are processed, client is the one who sends the first packet
-	FlowKey      FlowKeyType
-	Timeout      int64
-	ClusterIndex int
-	ClientAddr   uint64
-	ServerAddr   uint64
-	ClientPort   uint16
-	ServerPort   uint16
-	Protocol     uint8 // Indicates transport protocol (TCP/UDP)
-	Packets      []Packet
+	FlowKey          FlowKeyType
+	Timeout          int64
+	ClusterIndex     int
+	ClientAddr       uint64
+	ServerAddr       uint64
+	ClientPort       uint16
+	ServerPort       uint16
+	Protocol         uint8 // Indicates transport protocol (TCP/UDP)
+	Packets          []Packet
+	TCPOptionsSever  []layers.TCPOption // these are not used ATM
+	TCPOptionsClient []layers.TCPOption
+	TCPOptionsinFlow [][]layers.TCPOption
 }
 
 // TCPFlow is a Flow with special fields for TCP connections
@@ -148,6 +158,12 @@ func (f *TCPFlow) AddPacket(packetInfo PacketInformation) {
 		FIN:   packetInfo.TCPFIN,
 		RST:   packetInfo.TCPRST,
 		SYN:   packetInfo.TCPSYN})
+	if !packetInfo.TCPSYN { // only append if not already appended for SYN as TCPOptionsClient/server
+		if packetInfo.TCPOptions != nil && len(packetInfo.TCPOptions) > 0 {
+			f.TCPOptionsinFlow = append(f.TCPOptionsinFlow, packetInfo.TCPOptions)
+
+		}
+	}
 	switch {
 	case packetInfo.TCPRST:
 		f.RSTIndex = int32(len(f.Packets) - 1)
@@ -168,24 +184,29 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
+		f.TCPOptionsClient = packetInfo.TCPOptions
 	case packetInfo.TCPSYN && packetInfo.TCPACK:
 		// From Server
 		f.ClientAddr = packetInfo.DstIP
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
-	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort:
+		f.TCPOptionsSever = packetInfo.TCPOptions
+
+	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort: // i send from standardized port to private port range
 		// From Server
 		f.ClientAddr = packetInfo.DstIP
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
+
 	default:
 		// From Client
 		f.ClientAddr = packetInfo.SrcIP
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
+
 	}
 }
 
