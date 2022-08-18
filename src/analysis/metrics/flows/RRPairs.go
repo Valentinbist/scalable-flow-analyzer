@@ -1,8 +1,8 @@
 package flows
 
 import (
-	"analysis/flows"
-	"analysis/metrics/common"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics/common"
 )
 
 type MetricRRPs struct{}

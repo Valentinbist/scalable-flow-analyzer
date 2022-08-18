@@ -1,8 +1,8 @@
 package standard
 
 import (
-	"analysis/metrics/common"
 	"fmt"
+	"test.com/scale/src/analysis/metrics/common"
 )
 
 type MetricNumServers struct {

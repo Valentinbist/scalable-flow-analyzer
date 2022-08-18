@@ -1,8 +1,8 @@
 package clustering
 
 import (
-	"clustering/dataformat"
 	"math"
+	"test.com/scale/src/clustering/dataformat"
 )
 
 // GetDataOfRRP returns the rrp data
