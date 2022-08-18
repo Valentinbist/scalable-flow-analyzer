@@ -3,16 +3,15 @@ package pool
 // This file manages multiple pools, distributes data.
 
 import (
-	"analysis/flows"
-	"analysis/metrics"
 	"fmt"
-	"sync"
-
 	"github.com/dustin/go-humanize"
+	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics"
 )
 
 // numFlowThreads defines the number of Threads (x2 (TCP & UDP)) which are responsible to add packets
-const numFlowThreads = 64
+const numFlowThreads = 14
 
 // addPacketChannelSize defines the size of the channel
 const addPacketChannelSize = 400
