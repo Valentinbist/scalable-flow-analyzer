@@ -1,14 +1,14 @@
 package standard
 
 import (
-	"analysis/flows"
-	"analysis/metrics/common"
-	"analysis/utils"
-	"clustering/clustering"
-	"clustering/dataformat"
 	"log"
 	"path"
 	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics/common"
+	"test.com/scale/src/analysis/utils"
+	"test.com/scale/src/clustering/clustering"
+	"test.com/scale/src/clustering/dataformat"
 
 	"github.com/uncatchable-de/goml/cluster"
 )
@@ -254,7 +254,6 @@ func (cc *ClusterController) CollectAndSetFlowClusterIndex(flow *flows.Flow, req
 	if !cc.useClusters && !cc.collectClusterInfo {
 		flow.ClusterIndex = DefaultClusterIndex
 	}
-
 	protocolKey := common.GetProtocol(flow).ProtocolKey
 	flowInfos := cc.getFlowInfo(flow, reqRes)
 

@@ -1,7 +1,7 @@
 package metrics
 
 import (
-	"analysis/flows"
+	"test.com/scale/src/analysis/flows"
 )
 
 type Metric interface {

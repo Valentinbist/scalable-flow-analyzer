@@ -5,9 +5,9 @@ package standard
 // The Pool will only flush Flows (connections). Based on these, sessions and request/responses are extracted by this package.
 
 import (
-	"analysis/flows"
-	"analysis/metrics/common"
 	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics/common"
 )
 
 // Metric handles all sub-metrics.

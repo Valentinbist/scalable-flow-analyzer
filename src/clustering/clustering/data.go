@@ -1,11 +1,11 @@
 package clustering
 
 import (
-	"clustering/dataformat"
 	"encoding/binary"
 	"io"
 	"log"
 	"os"
+	"test.com/scale/src/clustering/dataformat"
 
 	"github.com/golang/protobuf/proto"
 )
