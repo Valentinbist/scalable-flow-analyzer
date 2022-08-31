@@ -1,9 +1,6 @@
 package reader
 
 import (
-	"analysis/parser"
-	"analysis/pool"
-	"analysis/utils"
 	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/google/gopacket"
@@ -12,6 +9,9 @@ import (
 	"log"
 	"os"
 	"strings"
+	"test.com/scale/src/analysis/parser"
+	"test.com/scale/src/analysis/pool"
+	"test.com/scale/src/analysis/utils"
 )
 
 // PacketReader reads from a source.
@@ -51,17 +51,26 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		if err == io.EOF {
 			return false
 		}
-		// Setup Flushing Interval
-		p.LastPacketTimestamp = ci.Timestamp.UnixNano()
 		if p.PacketIdx == 0 {
 			p.FirstPacketTimestamp = ci.Timestamp.UnixNano()
 			p.flushTimestamp = p.FirstPacketTimestamp + flushRate
 		}
+
 		p.PacketIdx++
+
 		if err != nil {
 			fmt.Println("Error reading packet: ", err)
 			continue
 		}
+		// Setup Flushing Interval
+		p.LastPacketTimestamp = ci.Timestamp.UnixNano()
+
+		/*
+			p.PacketIdx++
+			if err != nil {
+				fmt.Println("Error reading packet: ", err)
+				continue
+			} moved the error handling up */
 		// Parse packet
 		p.parser.ParsePacket(data, p.PacketIdx, p.LastPacketTimestamp)
 		// Flush packet when flushing interval is reached

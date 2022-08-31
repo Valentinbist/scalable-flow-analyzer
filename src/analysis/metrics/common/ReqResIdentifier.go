@@ -4,9 +4,9 @@ package common
 // Also responsible for reconstructing flows.
 
 import (
-	"analysis/flows"
-	"analysis/utils"
 	"fmt"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/utils"
 )
 
 // Maximal distance between two ACK responses. If higher, the packets are most likely out of order

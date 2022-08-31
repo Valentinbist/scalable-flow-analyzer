@@ -1,11 +1,11 @@
 package common
 
 import (
-	"analysis/flows"
 	"encoding/binary"
 	"log"
 	"strconv"
 	"strings"
+	"test.com/scale/src/analysis/flows"
 
 	"github.com/cespare/xxhash"
 )

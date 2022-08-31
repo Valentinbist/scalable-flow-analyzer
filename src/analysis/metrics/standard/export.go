@@ -1,11 +1,11 @@
 package standard
 
 import (
-	"analysis/metrics/common"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path"
+	"test.com/scale/src/analysis/metrics/common"
 
 	"github.com/dustin/go-humanize"
 )

@@ -4,9 +4,9 @@ package pool
 // This file is internal only, other components use pools.
 
 import (
-	"analysis/flows"
-	"analysis/metrics"
 	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics"
 )
 
 // Pool is a collection of Flows previously seen

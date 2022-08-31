@@ -1,13 +1,13 @@
 package parser
 
 import (
-	"analysis/flows"
-	"analysis/pool"
 	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
 	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/pool"
 	"time"
 
 	"github.com/cespare/xxhash"
@@ -181,6 +181,9 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					packetInfo.TCPAckNr = tcp.Ack
 					packetInfo.PayloadLength = ipLength - (uint16(tcp.DataOffset) * 4) // Data offset in 32 bits words
 					packetInfo.FlowKey = GetFlowKey(packetInfo.SrcIP, packetInfo.DstIP, flows.TCP, packetInfo.SrcPort, packetInfo.DstPort)
+					// todo write tcp options
+					packetInfo.TCPOptions = tcp.Options
+					//packet
 				case layers.LayerTypeUDP:
 					packetInfo.HasUDP = true
 					packetInfo.SrcPort = uint16(udp.SrcPort)

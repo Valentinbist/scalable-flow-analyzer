@@ -1,9 +1,9 @@
 package standard
 
 import (
-	"analysis/flows"
-	"analysis/metrics/common"
 	"fmt"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics/common"
 )
 
 // MetricSize measures the size of the requests and responses.

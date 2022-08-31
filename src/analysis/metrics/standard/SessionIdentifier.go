@@ -3,11 +3,11 @@ package standard
 // Analyzes Flows to identify sessions.
 
 import (
-	"analysis/flows"
-	"analysis/metrics/common"
 	"fmt"
 	"sort"
 	"sync"
+	"test.com/scale/src/analysis/flows"
+	"test.com/scale/src/analysis/metrics/common"
 	"time"
 )
 

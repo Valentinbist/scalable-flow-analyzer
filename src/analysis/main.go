@@ -1,15 +1,15 @@
 package main
 
 import (
-	"analysis/flows"
-	flowMetrics "analysis/metrics/flows"
-	standardMetrics "analysis/metrics/standard"
-	"analysis/parser"
-	"analysis/pool"
-	"analysis/reader"
-	"analysis/utils"
 	"github.com/dustin/go-humanize"
 	"github.com/google/gopacket/pcap"
+	"test.com/scale/src/analysis/flows"
+	flowMetrics "test.com/scale/src/analysis/metrics/flows"
+	standardMetrics "test.com/scale/src/analysis/metrics/standard"
+	"test.com/scale/src/analysis/parser"
+	"test.com/scale/src/analysis/pool"
+	"test.com/scale/src/analysis/reader"
+	"test.com/scale/src/analysis/utils"
 
 	"flag"
 	"fmt"
@@ -23,17 +23,17 @@ import (
 
 const million = 1000000
 
-const sortingRingBufferSize = 32 * million
-const numParser = 16
+const sortingRingBufferSize = 16 * million
+const numParser = 4
 
 // Number of parser channels
 // Must be maximal numParser, but better if lower to balance load between parsers (e.g. half of numParser)
 // If it is too low, the synchronization overhead maybe increases
-const numParserChannel = 8
+const numParserChannel = 2
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
-const flushRate = int64(40 * time.Second)
-const packetStop = 10000 * million
+const flushRate = int64(10 * time.Second)
+const packetStop = 1000 * million
 
 // The two different kinds of metrics one can choose by using the 'flow' flag
 var standardMetric *standardMetrics.Metric
@@ -45,7 +45,10 @@ var defaultTCPRstTimeout, _ = time.ParseDuration("1s")
 var defaultUDPTimeout, _ = time.ParseDuration("5m0s")
 var defaultSessionTimeout, _ = time.ParseDuration("10m")
 
-var input = flag.String("i", "", "Path to .pcapng or .pcapng.gz files or to directory with these files (not in combination with --interface)")
+//var defaultInputString = "./testdata/test.pcapng"
+var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
+
+var input = flag.String("i", defaultInputString, "Path to .pcapng or .pcapng.gz files or to directory with these files (not in combination with --interface)")
 var interfaceName = flag.String("interface", "", "Interface name to capture packets from (not in combination with -i)")
 var exportDirectory = flag.String("export", "", "Export directory to store the metrics files (Default: metrics)")
 var computeFlowMetrics = flag.Bool("flow", true, "Compute flow metrics instead of default metrics (Default: true)")
