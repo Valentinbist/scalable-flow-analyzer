@@ -23,17 +23,17 @@ import (
 
 const million = 1000000
 
-const sortingRingBufferSize = 16 * million
-const numParser = 4
+const sortingRingBufferSize = 32 * million
+const numParser = 16
 
 // Number of parser channels
 // Must be maximal numParser, but better if lower to balance load between parsers (e.g. half of numParser)
 // If it is too low, the synchronization overhead maybe increases
-const numParserChannel = 2
+const numParserChannel = 8
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
-const flushRate = int64(10 * time.Second)
-const packetStop = 1000 * million
+const flushRate = int64(40 * time.Second)
+const packetStop = 10000 * million
 
 // The two different kinds of metrics one can choose by using the 'flow' flag
 var standardMetric *standardMetrics.Metric
@@ -45,8 +45,9 @@ var defaultTCPRstTimeout, _ = time.ParseDuration("1s")
 var defaultUDPTimeout, _ = time.ParseDuration("5m0s")
 var defaultSessionTimeout, _ = time.ParseDuration("10m")
 
-//var defaultInputString = "./testdata/test.pcapng"
-var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
+var defaultInputString = "./testdata/test.pcapng"
+
+//var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
 
 var input = flag.String("i", defaultInputString, "Path to .pcapng or .pcapng.gz files or to directory with these files (not in combination with --interface)")
 var interfaceName = flag.String("interface", "", "Interface name to capture packets from (not in combination with -i)")
