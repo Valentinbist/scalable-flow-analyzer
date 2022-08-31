@@ -23,13 +23,13 @@ import (
 
 const million = 1000000
 
-const sortingRingBufferSize = 16 * million
-const numParser = 4
+const sortingRingBufferSize = 128 * million
+const numParser = 8
 
 // Number of parser channels
 // Must be maximal numParser, but better if lower to balance load between parsers (e.g. half of numParser)
 // If it is too low, the synchronization overhead maybe increases
-const numParserChannel = 2
+const numParserChannel = 4
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
 const flushRate = int64(10 * time.Second)

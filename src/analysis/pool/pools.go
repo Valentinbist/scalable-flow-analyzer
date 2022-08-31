@@ -11,7 +11,7 @@ import (
 )
 
 // numFlowThreads defines the number of Threads (x2 (TCP & UDP)) which are responsible to add packets
-const numFlowThreads = 14
+const numFlowThreads = 64
 
 // addPacketChannelSize defines the size of the channel
 const addPacketChannelSize = 400
@@ -81,6 +81,7 @@ func (p *Pools) Flush(force bool) {
 	fmt.Println(humanize.Comma(tcpFlushed), "\t/", humanize.Comma(tcpCount), "TCP Flows flushed")
 	fmt.Println(humanize.Comma(udpFlushed), "\t/", humanize.Comma(udpCount), "UDP Flows flushed")
 	wgFlush.Wait()
+	p.PrintStatistics() // more verbose logging
 }
 
 // Close all pools and flush out all flows from pools.
