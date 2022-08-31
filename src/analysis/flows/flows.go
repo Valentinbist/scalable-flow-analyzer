@@ -56,7 +56,9 @@ type PacketInformation struct {
 	HasTCP        bool
 	HasUDP        bool
 	// todo add tcp options here
-	TCPOptions []layers.TCPOption
+	TCPOptions   []layers.TCPOption
+	SrcInterface string
+	DstInterface string
 }
 
 // Packet defines a TCP or UDP Packet
@@ -94,6 +96,8 @@ type Flow struct {
 	TCPOptionsSever  []layers.TCPOption // these are not used ATM
 	TCPOptionsClient []layers.TCPOption
 	TCPOptionsinFlow [][]layers.TCPOption
+	ClientInterface  string
+	ServerInterface  string
 }
 
 // TCPFlow is a Flow with special fields for TCP connections
@@ -185,6 +189,8 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
 		f.TCPOptionsClient = packetInfo.TCPOptions
+		f.ClientInterface = packetInfo.SrcInterface
+		f.ServerInterface = packetInfo.DstInterface
 	case packetInfo.TCPSYN && packetInfo.TCPACK:
 		// From Server
 		f.ClientAddr = packetInfo.DstIP
@@ -192,6 +198,8 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
 		f.TCPOptionsSever = packetInfo.TCPOptions
+		f.ClientInterface = packetInfo.DstInterface
+		f.ServerInterface = packetInfo.SrcInterface
 
 	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort: // i send from standardized port to private port range
 		// From Server

@@ -190,6 +190,10 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					packetInfo.DstPort = uint16(udp.DstPort)
 					packetInfo.PayloadLength = udp.Length
 					packetInfo.FlowKey = GetFlowKey(packetInfo.SrcIP, packetInfo.DstIP, flows.UDP, packetInfo.SrcPort, packetInfo.DstPort)
+
+				case layers.LayerTypeEthernet:
+					packetInfo.SrcInterface = eth.SrcMAC.String()
+					packetInfo.DstInterface = eth.DstMAC.String()
 				}
 			}
 
