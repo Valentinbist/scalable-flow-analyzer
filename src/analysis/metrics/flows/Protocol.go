@@ -1,7 +1,6 @@
 package flows
 
 import (
-	"github.com/google/gopacket/layers"
 	"test.com/scale/src/analysis/flows"
 )
 
@@ -38,11 +37,15 @@ func (mp *MetricProtocol) onFlush(flow *flows.Flow) ExportableValue {
 		//TCPOptionsinFlow: TCPOptionsinFlow,
 		//TCPOptionsSever:  TCPOptionsSever,
 		//TCPOptionsClient: TCPOptionsClient,
-		TCPOptionsinFlow: flow.TCPOptionsinFlow,
-		TCPOptionsSever:  flow.TCPOptionsSever,
-		TCPOptionsClient: flow.TCPOptionsClient,
-		ClientInterface:  flow.ClientInterface,
-		ServerInterface:  flow.ServerInterface,
+		//TCPOptionsinFlow:    flow.TCPOptionsinFlow,
+		//TCPOptionsSever:     flow.TCPOptionsSever,
+		//TCPOptionsClient:    flow.TCPOptionsClient,
+		NewTCPOptionsServer: flow.NewTCPOptionsServer,
+		NewTCPOptionsClient: flow.NewTCPOptionsClient,
+		NewTCPOptionsinFlow: flow.NewTCPOptionsinFlow,
+		ClientInterface:     flow.ClientInterface,
+		ServerInterface:     flow.ServerInterface,
+		ServerClientUnclear: flow.ServerClientUnclear,
 	}
 
 	return value
@@ -60,12 +63,17 @@ type ValueProtocol struct {
 	// Address the server used. Conversion to int64 needed for elasticsearch.
 	addressServer int64
 	//tcp options
-	TCPOptionsSever  []layers.TCPOption
-	TCPOptionsClient []layers.TCPOption
-	TCPOptionsinFlow [][]layers.TCPOption
+	//TCPOptionsSever     []layers.TCPOption
+	//TCPOptionsClient    []layers.TCPOption
+	//TCPOptionsinFlow    [][]layers.TCPOption
 
-	ClientInterface string
-	ServerInterface string
+	NewTCPOptionsClient []flows.CustomTCPOption
+	NewTCPOptionsServer []flows.CustomTCPOption
+	NewTCPOptionsinFlow [][]flows.CustomTCPOption
+
+	ClientInterface     string
+	ServerInterface     string
+	ServerClientUnclear bool
 
 	//TCPOptionsinFlow string
 	//TCPOptionsSever  string
@@ -74,15 +82,19 @@ type ValueProtocol struct {
 
 func (vp ValueProtocol) export() map[string]interface{} {
 	return map[string]interface{}{
-		"protocol":         vp.protocol,
-		"portClient":       vp.portClient,
-		"portServer":       vp.portServer,
-		"addressClient":    vp.addressClient,
-		"addressServer":    vp.addressServer,
-		"tcpOptionsServer": vp.TCPOptionsSever,
-		"tcpOptionsClient": vp.TCPOptionsClient,
-		"TCPOptionsinFlow": vp.TCPOptionsinFlow,
-		"ClientInterface":  vp.ClientInterface,
-		"ServerInterface":  vp.ServerInterface,
+		"protocol":      vp.protocol,
+		"portClient":    vp.portClient,
+		"portServer":    vp.portServer,
+		"addressClient": vp.addressClient,
+		"addressServer": vp.addressServer,
+		//"tcpOptionsServer":    vp.TCPOptionsSever,
+		//"tcpOptionsClient":    vp.TCPOptionsClient,
+		//"TCPOptionsinFlow":    vp.TCPOptionsinFlow,
+		"ClientInterface":     vp.ClientInterface,
+		"ServerInterface":     vp.ServerInterface,
+		"ServerClientUnclear": vp.ServerClientUnclear,
+		"NewTCPOptionsClient": vp.NewTCPOptionsClient,
+		"NewTCPOptionsServer": vp.NewTCPOptionsServer,
+		"NewTCPOptionsinFlow": vp.NewTCPOptionsinFlow,
 	}
 }

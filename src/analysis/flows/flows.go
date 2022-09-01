@@ -1,9 +1,5 @@
 package flows
 
-import (
-	"github.com/google/gopacket/layers"
-)
-
 // TCPTimeout in Nanoseconds
 var TCPTimeout int64
 
@@ -56,9 +52,10 @@ type PacketInformation struct {
 	HasTCP        bool
 	HasUDP        bool
 	// todo add tcp options here
-	TCPOptions   []layers.TCPOption
-	SrcInterface string
-	DstInterface string
+	//TCPOptions    []layers.TCPOption
+	SrcInterface  string
+	DstInterface  string
+	NewTCPOptions []CustomTCPOption
 }
 
 // Packet defines a TCP or UDP Packet
@@ -71,33 +68,37 @@ type Packet struct {
 }
 
 type TCPPacket struct {
-	SeqNr      uint32
-	AckNr      uint32
-	ACK        bool
-	SYN        bool
-	RST        bool
-	FIN        bool
-	TCPOptions []layers.TCPOption
+	SeqNr uint32
+	AckNr uint32
+	ACK   bool
+	SYN   bool
+	RST   bool
+	FIN   bool
+	//TCPOptions []layers.TCPOption DO NOT RENEABLE I THINK IS USELESS
 }
 
 // Flow is a connection between two application instances.
 type Flow struct {
 	// The client is the one who initiates the connection or based on lower port number
 	// In case no SYN packets are processed, client is the one who sends the first packet
-	FlowKey          FlowKeyType
-	Timeout          int64
-	ClusterIndex     int
-	ClientAddr       uint64
-	ServerAddr       uint64
-	ClientPort       uint16
-	ServerPort       uint16
-	Protocol         uint8 // Indicates transport protocol (TCP/UDP)
-	Packets          []Packet
-	TCPOptionsSever  []layers.TCPOption // these are not used ATM
-	TCPOptionsClient []layers.TCPOption
-	TCPOptionsinFlow [][]layers.TCPOption
-	ClientInterface  string
-	ServerInterface  string
+	FlowKey      FlowKeyType
+	Timeout      int64
+	ClusterIndex int
+	ClientAddr   uint64
+	ServerAddr   uint64
+	ClientPort   uint16
+	ServerPort   uint16
+	Protocol     uint8 // Indicates transport protocol (TCP/UDP)
+	Packets      []Packet
+	//TCPOptionsSever     []layers.TCPOption // these are not used ATM
+	//TCPOptionsClient    []layers.TCPOption
+	NewTCPOptionsClient []CustomTCPOption
+	NewTCPOptionsServer []CustomTCPOption
+	//TCPOptionsinFlow    [][]layers.TCPOption
+	NewTCPOptionsinFlow [][]CustomTCPOption
+	ClientInterface     string
+	ServerInterface     string
+	ServerClientUnclear bool
 }
 
 // TCPFlow is a Flow with special fields for TCP connections
@@ -162,12 +163,45 @@ func (f *TCPFlow) AddPacket(packetInfo PacketInformation) {
 		FIN:   packetInfo.TCPFIN,
 		RST:   packetInfo.TCPRST,
 		SYN:   packetInfo.TCPSYN})
-	if !packetInfo.TCPSYN { // only append if not already appended for SYN as TCPOptionsClient/server
+	/*if !packetInfo.TCPSYN { // only append if not already appended for SYN as TCPOptionsClient/server
 		if packetInfo.TCPOptions != nil && len(packetInfo.TCPOptions) > 0 {
 			f.TCPOptionsinFlow = append(f.TCPOptionsinFlow, packetInfo.TCPOptions)
 
 		}
+	}*/
+	if !packetInfo.TCPSYN { // only append if not already appended for SYN as TCPOptionsClient/server
+		if packetInfo.NewTCPOptions != nil {
+			for _, option := range packetInfo.NewTCPOptions {
+				option["pac_num"] = uint8(len(f.Packets))
+				option["client"] = f.ClientAddr == packetInfo.SrcIP && f.ClientPort == packetInfo.SrcPort
+			}
+			f.NewTCPOptionsinFlow = append(f.NewTCPOptionsinFlow, packetInfo.NewTCPOptions)
+
+		}
+	} else { // is a syn need the following bc sett server client is only called once
+		if packetInfo.TCPACK { // is a syn-ack
+			if f.NewTCPOptionsServer == nil { // we havbent set this yet
+				if packetInfo.NewTCPOptions == nil { // no options in syn ack
+					dict_to_go := make(map[string]interface{})
+					dict_to_go["type"] = 255 // nothing at all
+					f.NewTCPOptionsServer = append(f.NewTCPOptionsServer, dict_to_go)
+				} else { // else take the given options
+					f.NewTCPOptionsServer = packetInfo.NewTCPOptions
+				}
+			}
+		} else { // is a syn NOT ACK
+			if f.NewTCPOptionsClient == nil { // we havbent set this yet
+				if packetInfo.NewTCPOptions == nil { // no options in syn ack
+					dict_to_go := make(map[string]interface{})
+					dict_to_go["type"] = 255 // nothing at all
+					f.NewTCPOptionsClient = append(f.NewTCPOptionsServer, dict_to_go)
+				} else { // else take the given options
+					f.NewTCPOptionsClient = packetInfo.NewTCPOptions
+				}
+			}
+		}
 	}
+
 	switch {
 	case packetInfo.TCPRST:
 		f.RSTIndex = int32(len(f.Packets) - 1)
@@ -188,18 +222,23 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
-		f.TCPOptionsClient = packetInfo.TCPOptions
+		//f.TCPOptionsClient = packetInfo.TCPOptions
+		f.NewTCPOptionsClient = packetInfo.NewTCPOptions
 		f.ClientInterface = packetInfo.SrcInterface
 		f.ServerInterface = packetInfo.DstInterface
+		f.ServerClientUnclear = false
+
 	case packetInfo.TCPSYN && packetInfo.TCPACK:
 		// From Server
 		f.ClientAddr = packetInfo.DstIP
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
-		f.TCPOptionsSever = packetInfo.TCPOptions
+		//f.TCPOptionsSever = packetInfo.TCPOptions
 		f.ClientInterface = packetInfo.DstInterface
 		f.ServerInterface = packetInfo.SrcInterface
+		f.ServerClientUnclear = false
+		f.NewTCPOptionsServer = packetInfo.NewTCPOptions
 
 	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort: // i send from standardized port to private port range
 		// From Server
@@ -207,6 +246,7 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
+		f.ServerClientUnclear = true
 
 	default:
 		// From Client
@@ -214,6 +254,7 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
+		f.ServerClientUnclear = true
 
 	}
 }
@@ -231,11 +272,24 @@ func (f *UDPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
+		f.ClientInterface = packetInfo.DstInterface
+		f.ServerInterface = packetInfo.SrcInterface
 	} else {
 		// From Client
 		f.ClientAddr = packetInfo.SrcIP
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
+		f.ClientInterface = packetInfo.SrcInterface
+		f.ServerInterface = packetInfo.DstInterface
 	}
 }
+
+/*
+type CustomTCPOption struct {
+	Dict map[string]interface{}
+	//Type      uint8
+	//TcpOption layers.TCPOption
+}
+*/
+type CustomTCPOption = map[string]interface{}

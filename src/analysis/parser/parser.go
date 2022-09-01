@@ -2,6 +2,7 @@ package parser
 
 import (
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/rand"
@@ -110,6 +111,20 @@ func (p *Parser) ParsePacket(data []byte, packetIdx, packetTimestamp int64) {
 	}
 }
 
+func AppendCustomOption(slice []flows.CustomTCPOption, data ...flows.CustomTCPOption) []flows.CustomTCPOption {
+	m := len(slice)
+	n := m + len(data)
+	if n > cap(slice) { // if necessary, reallocate
+		// allocate 10 more, for future growth.
+		newSlice := make([]flows.CustomTCPOption, (n + 1))
+		copy(newSlice, slice)
+		slice = newSlice
+	}
+	slice = slice[0:n]
+	copy(slice[m:n], data)
+	return slice
+}
+
 // parsePacket is the internal method, called when the internal cache/buffer is full
 func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parserIndex int) {
 	var dot1q layers.Dot1Q
@@ -181,8 +196,48 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					packetInfo.TCPAckNr = tcp.Ack
 					packetInfo.PayloadLength = ipLength - (uint16(tcp.DataOffset) * 4) // Data offset in 32 bits words
 					packetInfo.FlowKey = GetFlowKey(packetInfo.SrcIP, packetInfo.DstIP, flows.TCP, packetInfo.SrcPort, packetInfo.DstPort)
-					// todo write tcp options
-					packetInfo.TCPOptions = tcp.Options
+
+					// old code
+					//packetInfo.TCPOptions = tcp.Options
+					//new code
+					//irerate over tcp.Options
+					if len(tcp.Options) > 0 {
+						var tcpOptions_to_return []flows.CustomTCPOption
+						//tcpOptions_to_return = make([]CustomTCPOption, 0)
+						for _, option := range tcp.Options {
+							//option_to_return := flows.CustomTCPOption{}
+							dict_to_go := make(map[string]interface{})
+							switch {
+							case option.OptionType == layers.TCPOptionKindNop && option.OptionLength == 1:
+								//option_to_return.Type = 1 // NOP
+								dict_to_go["type"] = 1
+
+							case option.OptionType == layers.TCPOptionKindMSS && option.OptionLength == 4:
+								dict_to_go["type"] = 2 // MSS
+
+								switch {
+								case option.OptionData[0] == 5 && option.OptionData[1] == 180:
+									dict_to_go["type"] = 121 // MSS BbQ=
+								default:
+									dict_to_go["data"] = hex.EncodeToString(option.OptionData)
+									//dict_to_go["data"] = option.OptionData
+								}
+							case option.OptionType == layers.TCPOptionKindSACKPermitted && option.OptionLength == 2:
+								dict_to_go["type"] = 4 // SACK Permitted
+
+							default:
+								//option_to_return.TcpOption = option
+								dict_to_go["type"] = option.OptionType
+								dict_to_go["data"] = hex.EncodeToString(option.OptionData)
+								dict_to_go["length"] = option.OptionLength
+
+							}
+							//option_to_return.Dict = dict_to_go
+
+							tcpOptions_to_return = AppendCustomOption(tcpOptions_to_return, dict_to_go)
+						}
+						packetInfo.NewTCPOptions = tcpOptions_to_return
+					}
 					//packet
 				case layers.LayerTypeUDP:
 					packetInfo.HasUDP = true
@@ -194,6 +249,9 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 				case layers.LayerTypeEthernet:
 					packetInfo.SrcInterface = eth.SrcMAC.String()
 					packetInfo.DstInterface = eth.DstMAC.String()
+					//if packetInfo.SrcInterface == "" {
+					//	packetInfo.SrcInterface = "err"
+					//}
 				}
 			}
 
