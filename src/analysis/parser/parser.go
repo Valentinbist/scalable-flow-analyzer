@@ -247,8 +247,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					packetInfo.FlowKey = GetFlowKey(packetInfo.SrcIP, packetInfo.DstIP, flows.UDP, packetInfo.SrcPort, packetInfo.DstPort)
 
 				case layers.LayerTypeEthernet:
-					packetInfo.SrcInterface = eth.SrcMAC.String()
-					packetInfo.DstInterface = eth.DstMAC.String()
+					packetInfo.SrcInterface = eth.SrcMAC
+					packetInfo.DstInterface = eth.DstMAC
 					//if packetInfo.SrcInterface == "" {
 					//	packetInfo.SrcInterface = "err"
 					//}
@@ -256,6 +256,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 			}
 
 			for packetInfo.PacketIdx-p.ringbufferStart > p.ringbufferSize {
+				//p.flushRingbuffer()
+				p.ringbufferFlushChannel <- true
 				time.Sleep(1 * time.Second)
 				fmt.Println("Parser", parserIndex, ": Sleep for 1s due to missing space in ringbuffer.")
 				fmt.Println("Parser", parserIndex, ": Please increase sortingRingBufferSize variable or increase number of pool to speed up flushing if this happens more often.")
@@ -280,11 +282,30 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 func (p *Parser) flushRingbuffer() {
 	for range p.ringbufferFlushChannel {
 		// Go through ringbuffer and flush out all available packets
+
+		//calculate the ringbuffer usage
+		/*var ringbufferUsage int
+		for _, used := range p.ringbufferUsedlist {
+			if used {
+				ringbufferUsage++
+			}
+		}
+		fmt.Println("Ringbuffer usage before flush:", ringbufferUsage, "/", p.ringbufferSize)*/
+
+		//var already_ran int64
+
 		for i := p.ringbufferStart; true; i++ {
 			ringBufferIndex := i % p.ringbufferSize
+			/*already_ran++
+
+			if already_ran > p.ringbufferSize {
+				continue // todo is disabled, needs to be break to reenable
+			}*/
+
 			if !p.ringbufferUsedlist[ringBufferIndex] {
 				p.ringbufferStart = i
 				break
+				// was break TODO change?
 			}
 			if p.ringbuffer[ringBufferIndex].HasTCP {
 				p.pool.AddTCPPacket(&p.ringbuffer[ringBufferIndex])
@@ -293,6 +314,80 @@ func (p *Parser) flushRingbuffer() {
 			}
 			p.ringbufferUsedlist[ringBufferIndex] = false
 		}
+		/*
+			var ringbufferUsage int64
+			ringbufferUsage = 0
+			for _, used := range p.ringbufferUsedlist {
+				if used {
+					ringbufferUsage++
+				}
+			}
+			if float64(ringbufferUsage)/float64(p.ringbufferSize) > 0.5 {
+				fmt.Println("Ringbuffer usage after flush:", ringbufferUsage, "/", p.ringbufferSize)
+				// find continous ares of used ring buffer indexes and print their start and end
+				var start int64
+				var end int64
+				var found bool
+				found = false
+				for i := int64(0); i < p.ringbufferSize; i++ {
+					if p.ringbufferUsedlist[i] {
+						if !found {
+							start = i
+							found = true
+						}
+						end = i
+					} else {
+						if found {
+
+							fmt.Println("Used ringbuffer indexes:", start, "-", end)
+							fmt.Println("ringbuffer start", p.ringbufferStart)
+							found = false
+						}
+					}
+				}
+				// print new line
+				fmt.Println()*/
+		/*
+			if p.ringbufferUsedlist[(p.ringbufferStart+1)%p.ringbufferSize] == true {
+				if p.ringbufferUsedlist[(p.ringbufferStart+int64(0.1*float64(p.ringbufferSize)))%p.ringbufferSize] == true { // cheap binary search
+					if p.ringbufferUsedlist[(p.ringbufferStart+int64(0.5*float64(p.ringbufferSize)))%p.ringbufferSize] == true {
+						p.ringbufferStart = p.ringbufferStart + 1 // if ringbuffer at 50 percent or above move this one packet ahead
+
+						//then do this for debugging:
+						// find continous ares of used ring buffer indexes and print their start and end
+						var start int64
+						var end int64
+						var found bool
+						var hits int8
+						found = false
+						for i := int64(0); i < p.ringbufferSize; i++ {
+							if hits > 3 {
+								fmt.Println("and more slices")
+								break
+							}
+							if p.ringbufferUsedlist[i] {
+								if !found {
+									start = i
+									found = true
+								}
+								end = i
+							} else {
+								if found {
+									hits++
+									fmt.Println("Used ringbuffer indexes:", start, "-", end)
+
+									found = false
+								}
+							}
+						}
+						// print new line
+						fmt.Println("ringbuffer start", p.ringbufferStart%p.ringbufferSize)
+						fmt.Println()
+
+					}
+				}
+			}*/
+
 	}
 	p.wgRingbufferFlush.Done()
 }
