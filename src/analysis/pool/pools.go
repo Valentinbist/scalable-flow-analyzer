@@ -10,14 +10,14 @@ import (
 	"test.com/scale/src/analysis/metrics"
 )
 
-// numFlowThreads defines the number of Threads (x2 (TCP & UDP)) which are responsible to add packets
-const numFlowThreads = 64
+// NumFlowThreads defines the number of Threads (x2 (TCP & UDP)) which are responsible to add packets
+const NumFlowThreads = 12
 
-// addPacketChannelSize defines the size of the channel
-const addPacketChannelSize = 400
+// AddPacketChannelSize defines the size of the channel
+const AddPacketChannelSize = 300
 
-// packetInformationCacheSize is the batching size of the packets sent to the addPacket Channels
-const packetInformationCacheSize = 512
+// PacketInformationCacheSize is the batching size of the packets sent to the addPacket Channels
+const PacketInformationCacheSize = 128
 
 type Pools struct {
 	pools []*pool
@@ -34,8 +34,8 @@ func NewPools(tcpFilter, udpFilter []uint16, tcpDropIncomplete bool) *Pools {
 	for _, i := range udpFilter {
 		udpFilterList[i] = true
 	}
-	p.pools = make([]*pool, numFlowThreads)
-	for i := 0; i < numFlowThreads; i++ {
+	p.pools = make([]*pool, NumFlowThreads)
+	for i := 0; i < NumFlowThreads; i++ {
 		p.pools[i] = newPool(&tcpFilterList, &udpFilterList, tcpDropIncomplete)
 	}
 	return p
@@ -43,7 +43,7 @@ func NewPools(tcpFilter, udpFilter []uint16, tcpDropIncomplete bool) *Pools {
 
 // Returns the number of flow threads
 func (p Pools) GetNumFlowThreads() int {
-	return numFlowThreads
+	return NumFlowThreads
 }
 
 // RegisterMetric registers a Metric which shall be called on flush
@@ -55,13 +55,13 @@ func (p *Pools) RegisterMetric(metric metrics.Metric) {
 
 // Add a TCP Packet to the pools
 func (p *Pools) AddTCPPacket(packet *flows.PacketInformation) {
-	poolIndex := uint64(packet.FlowKey) % numFlowThreads
+	poolIndex := uint64(packet.FlowKey) % NumFlowThreads
 	p.pools[poolIndex].addTCPPacket(packet)
 }
 
 // Add a UDP Packet to the pools
 func (p *Pools) AddUDPPacket(packet *flows.PacketInformation) {
-	poolIndex := uint64(packet.FlowKey) % numFlowThreads
+	poolIndex := uint64(packet.FlowKey) % NumFlowThreads
 	p.pools[poolIndex].addUDPPacket(packet)
 }
 
@@ -77,9 +77,12 @@ func (p *Pools) Flush(force bool) {
 	for _, pool := range p.pools {
 		pool.flush(force, &wgFlush, &tcpFlushed, &tcpCount, &udpFlushed, &udpCount, &counterLock)
 	}
+	//fmt.Println("waiting for flush")
 	wgFlush.Wait()
 	fmt.Println(humanize.Comma(tcpFlushed), "\t/", humanize.Comma(tcpCount), "TCP Flows flushed")
 	fmt.Println(humanize.Comma(udpFlushed), "\t/", humanize.Comma(udpCount), "UDP Flows flushed")
+	//p.PrintStatistics()
+	fmt.Println()
 	wgFlush.Wait()
 }
 
