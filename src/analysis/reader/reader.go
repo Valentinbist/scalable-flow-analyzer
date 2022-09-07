@@ -56,12 +56,12 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 			p.flushTimestamp = p.FirstPacketTimestamp + flushRate
 		}
 
-		p.PacketIdx++
-
 		if err != nil {
-			fmt.Println("Error reading packet: ", err)
+			//fmt.Println("Error reading packet: ", err) todo renable and filter out
 			continue
 		}
+		p.PacketIdx++
+
 		// Setup Flushing Interval
 		p.LastPacketTimestamp = ci.Timestamp.UnixNano()
 
@@ -75,8 +75,20 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		p.parser.ParsePacket(data, p.PacketIdx, p.LastPacketTimestamp)
 		// Flush packet when flushing interval is reached
 		if p.LastPacketTimestamp > p.flushTimestamp {
+			// print flush timestamp in human readable format
+			if len(data) == 0 { //sometimes packets with len 0 come thorugh although no error is thrown? these have weird timestamps
+				continue
+			}
+			if p.LastPacketTimestamp-p.flushTimestamp >= flushRate*3 {
+				fmt.Println("spike?")
+				continue
+			}
+			//fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
 			p.flushTimestamp = p.LastPacketTimestamp + flushRate
-			utils.PrintMemUsage()
+			// print new flush timesamp in human readable format
+			//fmt.Println("Next flush at: ", humanize.Comma(p.flushTimestamp))
+			//utils.PrintMemUsage()
+			//utils.CreateMemoryProfile(strconv.FormatInt(p.flushTimestamp, 10))
 			fmt.Println("Flush at packet", humanize.Comma(p.PacketIdx))
 			p.pools.Flush(false)
 		}
