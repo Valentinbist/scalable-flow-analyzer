@@ -1,6 +1,7 @@
 package flows
 
 import (
+	"net"
 	"test.com/scale/src/analysis/flows"
 )
 
@@ -71,8 +72,8 @@ type ValueProtocol struct {
 	NewTCPOptionsServer []flows.CustomTCPOption
 	NewTCPOptionsinFlow [][]flows.CustomTCPOption
 
-	ClientInterface     string
-	ServerInterface     string
+	ClientInterface     net.HardwareAddr
+	ServerInterface     net.HardwareAddr
 	ServerClientUnclear bool
 
 	//TCPOptionsinFlow string
