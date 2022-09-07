@@ -124,11 +124,11 @@ func (r *Reader) ReadPacketData() (data []byte, ci gopacket.CaptureInfo, err err
 		return
 	}
 	if ci.CaptureLength > int(r.snaplen) {
-		data = make([]byte, r.snaplen)
-		_, err = io.ReadFull(r.r, data)
-		return data, ci, err
-		//err = fmt.Errorf("capture length exceeds snap length: %d > %d", ci.CaptureLength, r.snaplen)
-		//return
+		//data = make([]byte, r.snaplen)
+		//_, err = io.ReadFull(r.r, data)
+		//return data, ci, err
+		err = fmt.Errorf("capture length exceeds snap length: %d > %d", ci.CaptureLength, r.snaplen)
+		return
 	}
 	if ci.CaptureLength > ci.Length {
 		err = fmt.Errorf("capture length exceeds original packet length: %d > %d", ci.CaptureLength, ci.Length)
@@ -148,10 +148,10 @@ func (r *Reader) ZeroCopyReadPacketData() (data []byte, ci gopacket.CaptureInfo,
 	if ci, err = r.readPacketHeader(); err != nil {
 		return
 	}
-	//if ci.CaptureLength > int(r.snaplen) {
-	//		err = fmt.Errorf("capture length exceeds snap length: %d > %d", ci.CaptureLength, r.snaplen)
-	//		return
-	//	}
+	if ci.CaptureLength > int(r.snaplen) {
+		err = fmt.Errorf("capture length exceeds snap length: %d > %d", ci.CaptureLength, r.snaplen)
+		return
+	}
 	if ci.CaptureLength > ci.Length {
 		err = fmt.Errorf("capture length exceeds original packet length: %d > %d", ci.CaptureLength, ci.Length)
 		return
