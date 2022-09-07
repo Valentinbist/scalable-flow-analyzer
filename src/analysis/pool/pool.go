@@ -12,9 +12,9 @@ import (
 // Pool is a collection of Flows previously seen
 type pool struct {
 	addTCPPacketCache   packetInformationCache
-	addTCPPacketChannel chan [packetInformationCacheSize]flows.PacketInformation
+	addTCPPacketChannel chan [PacketInformationCacheSize]flows.PacketInformation
 	addUDPPacketCache   packetInformationCache
-	addUDPPacketChannel chan [packetInformationCacheSize]flows.PacketInformation
+	addUDPPacketChannel chan [PacketInformationCacheSize]flows.PacketInformation
 	tcpFlows            map[flows.FlowKeyType]*flows.TCPFlow // each flowthread has its own map to avoid concurrency
 	udpFlows            map[flows.FlowKeyType]*flows.UDPFlow // each flowthread has its own map to avoid concurrency
 	metrics             []metrics.Metric
@@ -29,7 +29,7 @@ type pool struct {
 }
 
 type packetInformationCache struct {
-	buf [packetInformationCacheSize]flows.PacketInformation
+	buf [PacketInformationCacheSize]flows.PacketInformation
 	pos int
 }
 
@@ -40,12 +40,12 @@ func newPool(tcpFilter, udpFilter *[65536]bool, tcpDropIncomplete bool) *pool {
 	// Start goroutines to add packets
 	p.wgAddPacket.Add(1)
 	p.tcpFlows = make(map[flows.FlowKeyType]*flows.TCPFlow)
-	p.addTCPPacketChannel = make(chan [packetInformationCacheSize]flows.PacketInformation, addPacketChannelSize)
+	p.addTCPPacketChannel = make(chan [PacketInformationCacheSize]flows.PacketInformation, AddPacketChannelSize)
 	go p.addTCPPackets()
 
 	p.wgAddPacket.Add(1)
 	p.udpFlows = make(map[flows.FlowKeyType]*flows.UDPFlow)
-	p.addUDPPacketChannel = make(chan [packetInformationCacheSize]flows.PacketInformation, addPacketChannelSize)
+	p.addUDPPacketChannel = make(chan [PacketInformationCacheSize]flows.PacketInformation, AddPacketChannelSize)
 	go p.addUDPPackets()
 
 	return &p
@@ -54,11 +54,11 @@ func newPool(tcpFilter, udpFilter *[65536]bool, tcpDropIncomplete bool) *pool {
 // ClosePool adds all remaining packets to pool and then flushes all packets to the metrics.
 func (p *pool) close() {
 	// Write remaining packets from channels to flows
-	tmp := [packetInformationCacheSize]flows.PacketInformation{}
+	tmp := [PacketInformationCacheSize]flows.PacketInformation{}
 	copy(tmp[:p.addTCPPacketCache.pos], p.addTCPPacketCache.buf[:p.addTCPPacketCache.pos])
 	p.addTCPPacketChannel <- tmp
 	close(p.addTCPPacketChannel)
-	tmp = [packetInformationCacheSize]flows.PacketInformation{}
+	tmp = [PacketInformationCacheSize]flows.PacketInformation{}
 	copy(tmp[:p.addUDPPacketCache.pos], p.addUDPPacketCache.buf[:p.addUDPPacketCache.pos])
 	p.addUDPPacketChannel <- tmp
 	close(p.addUDPPacketChannel)
@@ -69,21 +69,26 @@ func (p *pool) close() {
 func (p *pool) addTCPPacket(packet *flows.PacketInformation) {
 	p.addTCPPacketCache.buf[p.addTCPPacketCache.pos] = *packet
 	p.addTCPPacketCache.pos++
-	if p.addTCPPacketCache.pos == packetInformationCacheSize {
+	if p.addTCPPacketCache.pos == PacketInformationCacheSize {
 		p.addTCPPacketChannel <- p.addTCPPacketCache.buf
 		p.addTCPPacketCache.pos = 0
 	}
 }
 
 func (p *pool) addTCPPackets() {
+
 	for tcpPackets := range p.addTCPPacketChannel {
+		// to check why we wait: we wait bc channel is empty :(
+		/*if rand.Intn(10000) <= 1 {
+			fmt.Println(len(p.addTCPPacketChannel))
+		}*/
 		p.tcpFlowsLock.Lock()
 		for _, tcpPacket := range &tcpPackets {
 			if tcpPacket.PacketIdx == 0 {
 				continue
 			}
 			if !p.tcpFilter[tcpPacket.SrcPort] && !p.tcpFilter[tcpPacket.DstPort] {
-				continue
+				continue // todo whats up with these filters?
 			}
 			p.currentTCPTime = tcpPacket.Timestamp
 			flow, flowExists := p.tcpFlows[tcpPacket.FlowKey]
@@ -92,12 +97,14 @@ func (p *pool) addTCPPackets() {
 				// Check if connection timed out. Exception: TCP RST is set, then it belongs to current flow (e.g. tearing down due to timeout)
 				if !tcpPacket.TCPRST && p.flushTCPFlow(flow, false) {
 					flowExists = false
+					delete(p.tcpFlows, flow.FlowKey) //these deletes are used at other usage of p.flushTCPFlow
 				}
 
 				// If new TCP Connection and Old Flow was terminated: Force flush
 				if flowExists && tcpPacket.TCPSYN && (flow.FirstFINIndex != -1 || flow.RSTIndex != -1) {
 					p.flushTCPFlow(flow, true)
 					flowExists = false
+					delete(p.tcpFlows, flow.FlowKey)
 				}
 			}
 			// Create new flow
@@ -117,7 +124,7 @@ func (p *pool) addTCPPackets() {
 func (p *pool) addUDPPacket(packet *flows.PacketInformation) {
 	p.addUDPPacketCache.buf[p.addUDPPacketCache.pos] = *packet
 	p.addUDPPacketCache.pos++
-	if p.addUDPPacketCache.pos == packetInformationCacheSize {
+	if p.addUDPPacketCache.pos == PacketInformationCacheSize {
 		p.addUDPPacketChannel <- p.addUDPPacketCache.buf
 		p.addUDPPacketCache.pos = 0
 	}
@@ -138,6 +145,7 @@ func (p *pool) addUDPPackets() {
 			// Check if connection is timedout
 			if flowExists && p.flushUDPFlow(flow, false) {
 				flowExists = false
+				delete(p.udpFlows, flow.FlowKey) // be gone flow
 			}
 
 			// Create new flow
@@ -201,12 +209,15 @@ func (p *pool) flush(force bool, wgFlush *sync.WaitGroup, tcpFlushed, tcpCount, 
 		*tcpCount += int64(len(p.tcpFlows))
 		counterLock.Unlock()
 		var flushed int64
+		//len_flows := len(p.tcpFlows)
+		//fmt.Println("trying to flush tcp flows: ", len_flows)
 		for _, flow := range p.tcpFlows {
 			if p.flushTCPFlow(flow, force) {
 				delete(p.tcpFlows, flow.FlowKey)
 				flushed++
 			}
 		}
+		//fmt.Println("flushed % of tcp flows: ", float64(flushed)/float64(len_flows))
 		p.tcpFlowsLock.Unlock()
 		counterLock.Lock()
 		*tcpFlushed += flushed
