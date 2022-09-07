@@ -1,5 +1,7 @@
 package flows
 
+import "net"
+
 // TCPTimeout in Nanoseconds
 var TCPTimeout int64
 
@@ -53,8 +55,8 @@ type PacketInformation struct {
 	HasUDP        bool
 	// todo add tcp options here
 	//TCPOptions    []layers.TCPOption
-	SrcInterface  string
-	DstInterface  string
+	SrcInterface  net.HardwareAddr
+	DstInterface  net.HardwareAddr
 	NewTCPOptions []CustomTCPOption
 }
 
@@ -96,8 +98,8 @@ type Flow struct {
 	NewTCPOptionsServer []CustomTCPOption
 	//TCPOptionsinFlow    [][]layers.TCPOption
 	NewTCPOptionsinFlow [][]CustomTCPOption
-	ClientInterface     string
-	ServerInterface     string
+	ClientInterface     net.HardwareAddr
+	ServerInterface     net.HardwareAddr
 	ServerClientUnclear bool
 }
 
@@ -175,7 +177,7 @@ func (f *TCPFlow) AddPacket(packetInfo PacketInformation) {
 				option["pac_num"] = uint8(len(f.Packets))
 				option["client"] = f.ClientAddr == packetInfo.SrcIP && f.ClientPort == packetInfo.SrcPort
 			}
-			f.NewTCPOptionsinFlow = append(f.NewTCPOptionsinFlow, packetInfo.NewTCPOptions)
+			//f.NewTCPOptionsinFlow = append(f.NewTCPOptionsinFlow, packetInfo.NewTCPOptions) TODO REENABLE
 
 		}
 	} else { // is a syn need the following bc sett server client is only called once
