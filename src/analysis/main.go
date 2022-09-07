@@ -23,16 +23,16 @@ import (
 
 const million = 1000000
 
-const sortingRingBufferSize = 32 * million
-const numParser = 16
+const sortingRingBufferSize = 1.5 * million
+const numParser = 3
 
 // Number of parser channels
 // Must be maximal numParser, but better if lower to balance load between parsers (e.g. half of numParser)
 // If it is too low, the synchronization overhead maybe increases
-const numParserChannel = 8
+const numParserChannel = 1
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
-const flushRate = int64(40 * time.Second)
+const flushRate = int64(20 * time.Second)
 const packetStop = 10000 * million
 
 // The two different kinds of metrics one can choose by using the 'flow' flag
@@ -45,7 +45,9 @@ var defaultTCPRstTimeout, _ = time.ParseDuration("1s")
 var defaultUDPTimeout, _ = time.ParseDuration("5m0s")
 var defaultSessionTimeout, _ = time.ParseDuration("10m")
 
-var defaultInputString = "./testdata/test.pcapng"
+//var defaultInputString = "./testdata/test.pcapng"
+
+var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\maiw_full_trace.pcap"
 
 //var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
 
@@ -125,7 +127,19 @@ func checkFlags() {
 	}
 }
 
+//print all consts
+func printConsts() {
+	fmt.Println("sortingRingBufferSize", sortingRingBufferSize)
+	fmt.Println("numParser", numParser)
+	fmt.Println("numParserHannel", numParserChannel)
+	fmt.Println("numflowThreads", pool.NumFlowThreads)
+	fmt.Println("AddPacketChannelSize", pool.AddPacketChannelSize)
+	fmt.Println("PacketInformationCacheSize", pool.PacketInformationCacheSize)
+
+}
+
 func main() {
+	printConsts()
 	flag.Parse()
 
 	checkFlags()
