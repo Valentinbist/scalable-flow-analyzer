@@ -47,6 +47,8 @@ func (mp *MetricProtocol) onFlush(flow *flows.Flow) ExportableValue {
 		ClientInterface:     flow.ClientInterface,
 		ServerInterface:     flow.ServerInterface,
 		ServerClientUnclear: flow.ServerClientUnclear,
+		FullClientAddr:      flow.FullClientAddr,
+		FullServerAddr:      flow.FullServerAddr,
 	}
 
 	return value
@@ -76,6 +78,9 @@ type ValueProtocol struct {
 	ServerInterface     net.HardwareAddr
 	ServerClientUnclear bool
 
+	FullClientAddr net.IP
+	FullServerAddr net.IP
+
 	//TCPOptionsinFlow string
 	//TCPOptionsSever  string
 	//TCPOptionsClient string
@@ -97,5 +102,7 @@ func (vp ValueProtocol) export() map[string]interface{} {
 		"NewTCPOptionsClient": vp.NewTCPOptionsClient,
 		"NewTCPOptionsServer": vp.NewTCPOptionsServer,
 		"NewTCPOptionsinFlow": vp.NewTCPOptionsinFlow,
+		"FullClientAddr":      vp.FullClientAddr,
+		"FullServerAddr":      vp.FullServerAddr,
 	}
 }

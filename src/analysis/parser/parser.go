@@ -169,6 +169,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					ipLength = ipv4.Length - (uint16(ipv4.IHL) * 4)
 					packetInfo.SrcIP = xxhash.Sum64(ipv4.SrcIP)
 					packetInfo.DstIP = xxhash.Sum64(ipv4.DstIP)
+					packetInfo.FullSrcIp = ipv4.SrcIP
+					packetInfo.FullDstIp = ipv4.DstIP
 				case layers.LayerTypeIPv6:
 					ipLength = ipv6.Length
 					// if zero
@@ -184,6 +186,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					}
 					packetInfo.SrcIP = xxhash.Sum64(ipv6.SrcIP)
 					packetInfo.DstIP = xxhash.Sum64(ipv6.DstIP)
+					packetInfo.FullSrcIp = ipv6.SrcIP
+					packetInfo.FullDstIp = ipv6.DstIP
 				case layers.LayerTypeTCP:
 					packetInfo.HasTCP = true
 					packetInfo.TCPSYN = tcp.SYN
@@ -208,6 +212,10 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 							//option_to_return := flows.CustomTCPOption{}
 							dict_to_go := make(map[string]interface{})
 							switch {
+							case option.OptionType == layers.TCPOptionKindEndList && option.OptionLength == 1:
+								// tcp option end list
+								dict_to_go["type"] = 0
+
 							case option.OptionType == layers.TCPOptionKindNop && option.OptionLength == 1:
 								//option_to_return.Type = 1 // NOP
 								dict_to_go["type"] = 1
@@ -217,10 +225,48 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 
 								switch {
 								case option.OptionData[0] == 5 && option.OptionData[1] == 180:
-									dict_to_go["type"] = 121 // MSS BbQ=
+									dict_to_go["type"] = 255 + 21 // MSS base64 BbQ= hex. 05 B4
+								case option.OptionData[0] == 2 && option.OptionData[1] == 24:
+									dict_to_go["type"] = 255 + 22 // MSS hex. 02 18
+								case option.OptionData[0] == 5 && option.OptionData[1] == 160:
+									dict_to_go["type"] = 255 + 23 // MSS hex. 05 A0
+								case option.OptionData[0] == 5 && option.OptionData[1] == 110:
+									dict_to_go["type"] = 255 + 24 // MSS hex. 05 6E
+								case option.OptionData[0] == 5 && option.OptionData[1] == 172:
+									dict_to_go["type"] = 255 + 25 // MSS hex. 05 AC
+								case option.OptionData[0] == 5 && option.OptionData[1] == 144:
+									dict_to_go["type"] = 255 + 26 // MSS hex. 05 90
 								default:
 									dict_to_go["data"] = hex.EncodeToString(option.OptionData)
 									//dict_to_go["data"] = option.OptionData
+								}
+							case option.OptionType == layers.TCPOptionKindWindowScale && option.OptionLength == 3:
+								dict_to_go["type"] = 3 // Window Scale
+
+								switch {
+								case option.OptionData[0] == 7:
+									dict_to_go["type"] = 255 + 37 // Window Scale 7
+								case option.OptionData[0] == 8:
+									dict_to_go["type"] = 255 + 38 // Window Scale 7
+								case option.OptionData[0] == 0:
+									dict_to_go["type"] = 255 + 30 // Window Scale 7
+								case option.OptionData[0] == 2:
+									dict_to_go["type"] = 255 + 32 // Window Scale 7
+								case option.OptionData[0] == 1:
+									dict_to_go["type"] = 255 + 31 // Window Scale 7
+								case option.OptionData[0] == 3:
+									dict_to_go["type"] = 255 + 33 // Window Scale 7
+								case option.OptionData[0] == 4:
+									dict_to_go["type"] = 255 + 34 // Window Scale 7
+								case option.OptionData[0] == 5:
+									dict_to_go["type"] = 255 + 35 // Window Scale 7
+								case option.OptionData[0] == 6:
+									dict_to_go["type"] = 255 + 36 // Window Scale 7
+								case option.OptionData[0] == 9:
+									dict_to_go["type"] = 255 + 39 // Window Scale 7
+
+								default:
+									dict_to_go["data"] = hex.EncodeToString(option.OptionData)
 								}
 							case option.OptionType == layers.TCPOptionKindSACKPermitted && option.OptionLength == 2:
 								dict_to_go["type"] = 4 // SACK Permitted
@@ -234,7 +280,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 							}
 							//option_to_return.Dict = dict_to_go
 
-							tcpOptions_to_return = AppendCustomOption(tcpOptions_to_return, dict_to_go)
+							//tcpOptions_to_return = AppendCustomOption(tcpOptions_to_return, dict_to_go)
+							tcpOptions_to_return = append(tcpOptions_to_return, dict_to_go)
 						}
 						packetInfo.NewTCPOptions = tcpOptions_to_return
 					}
