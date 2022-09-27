@@ -59,7 +59,11 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		}
 
 		if err != nil {
-			//fmt.Println("Error reading packet: ", err) todo renable and filter out
+			fmt.Println("Error reading packet: ", err)
+			continue
+		}
+		if len(data) == 0 { //sometimes packets with len 0 come thorugh although no error is thrown? these have weird timestamps
+			fmt.Println("Error len0 packet")
 			continue
 		}
 		p.PacketIdx++
@@ -74,13 +78,11 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 				continue
 			} moved the error handling up */
 		// Parse packet
-		p.parser.ParsePacket(data, p.PacketIdx, p.LastPacketTimestamp)
+		p.parser.ParsePacket(data, p.PacketIdx, p.LastPacketTimestamp, uint8(ci.InterfaceIndex))
 		// Flush packet when flushing interval is reached
 		if p.LastPacketTimestamp > p.flushTimestamp {
 			// print flush timestamp in human readable format
-			if len(data) == 0 { //sometimes packets with len 0 come thorugh although no error is thrown? these have weird timestamps
-				continue
-			}
+
 			if p.LastPacketTimestamp-p.flushTimestamp >= flushRate*3 {
 				if spike_count > 1000 { // if we have over 1000 spikes, this is not a spike but just the data i guess, so give it a try
 					fmt.Println("1000 spikes, trying to continue")

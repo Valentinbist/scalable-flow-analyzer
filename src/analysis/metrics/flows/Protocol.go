@@ -74,8 +74,8 @@ type ValueProtocol struct {
 	//NewTCPOptionsServer []flows.CustomTCPOption
 	//NewTCPOptionsinFlow [][]flows.CustomTCPOption
 
-	ClientInterface     net.HardwareAddr
-	ServerInterface     net.HardwareAddr
+	ClientInterface     uint8
+	ServerInterface     uint8
 	ServerClientUnclear bool
 
 	FullClientAddr net.IP

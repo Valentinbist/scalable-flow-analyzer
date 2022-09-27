@@ -54,11 +54,12 @@ type PacketInformation struct {
 	HasTCP        bool
 	HasUDP        bool
 	//TCPOptions    []layers.TCPOption
-	SrcInterface  net.HardwareAddr
-	DstInterface  net.HardwareAddr
-	NewTCPOptions []CustomTCPOption
-	FullSrcIp     net.IP
-	FullDstIp     net.IP
+	//SrcInterface  net.HardwareAddr
+	//DstInterface  net.HardwareAddr
+	//NewTCPOptions []CustomTCPOption
+	InterfaceId uint8
+	FullSrcIp   net.IP
+	FullDstIp   net.IP
 }
 
 // Packet defines a TCP or UDP Packet
@@ -95,12 +96,14 @@ type Flow struct {
 	Packets      []Packet
 	//TCPOptionsSever     []layers.TCPOption // these are not used ATM
 	//TCPOptionsClient    []layers.TCPOption
-	NewTCPOptionsClient []CustomTCPOption
-	NewTCPOptionsServer []CustomTCPOption
+	//NewTCPOptionsClient []CustomTCPOption
+	//NewTCPOptionsServer []CustomTCPOption
 	//TCPOptionsinFlow    [][]layers.TCPOption
-	NewTCPOptionsinFlow [][]CustomTCPOption
-	ClientInterface     net.HardwareAddr
-	ServerInterface     net.HardwareAddr
+	//NewTCPOptionsinFlow [][]CustomTCPOption
+	//ClientInterface     net.HardwareAddr
+	//ServerInterface     net.HardwareAddr
+	ClientInterface     uint8
+	ServerInterface     uint8
 	ServerClientUnclear bool
 	FullClientAddr      net.IP
 	FullServerAddr      net.IP
@@ -229,12 +232,14 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
 		//f.TCPOptionsClient = packetInfo.TCPOptions
-		f.NewTCPOptionsClient = packetInfo.NewTCPOptions
-		f.ClientInterface = packetInfo.SrcInterface
-		f.ServerInterface = packetInfo.DstInterface
+		//f.NewTCPOptionsClient = packetInfo.NewTCPOptions
+		//f.ClientInterface = packetInfo.SrcInterface
+		//f.ServerInterface = packetInfo.DstInterface
 		f.ServerClientUnclear = false
 		f.FullClientAddr = packetInfo.FullSrcIp
 		f.FullServerAddr = packetInfo.FullDstIp
+		f.ServerInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ClientInterface = packetInfo.InterfaceId
 
 	case packetInfo.TCPSYN && packetInfo.TCPACK:
 		// From Server
@@ -243,17 +248,19 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
 		//f.TCPOptionsSever = packetInfo.TCPOptions
-		f.ClientInterface = packetInfo.DstInterface
-		f.ServerInterface = packetInfo.SrcInterface
+		//f.ClientInterface = packetInfo.DstInterface
+		//f.ServerInterface = packetInfo.SrcInterface
 		f.ServerClientUnclear = false
-		f.NewTCPOptionsServer = packetInfo.NewTCPOptions
+		//f.NewTCPOptionsServer = packetInfo.NewTCPOptions
 		f.FullClientAddr = packetInfo.FullDstIp
 		f.FullServerAddr = packetInfo.FullSrcIp
+		f.ClientInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ServerInterface = packetInfo.InterfaceId
 
 	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort: // i send from standardized port to private port range
 		// From Server
-		f.ClientInterface = packetInfo.DstInterface
-		f.ServerInterface = packetInfo.SrcInterface
+		//f.ClientInterface = packetInfo.DstInterface
+		//f.ServerInterface = packetInfo.SrcInterface
 		f.ClientAddr = packetInfo.DstIP
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
@@ -261,6 +268,8 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerClientUnclear = true
 		f.FullClientAddr = packetInfo.FullDstIp
 		f.FullServerAddr = packetInfo.FullSrcIp
+		f.ClientInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ServerInterface = packetInfo.InterfaceId
 
 	default:
 		// From Client
@@ -271,8 +280,10 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerClientUnclear = true
 		f.FullClientAddr = packetInfo.FullSrcIp
 		f.FullServerAddr = packetInfo.FullDstIp
-		f.ClientInterface = packetInfo.SrcInterface
-		f.ServerInterface = packetInfo.DstInterface
+		//f.ClientInterface = packetInfo.SrcInterface
+		//f.ServerInterface = packetInfo.DstInterface
+		f.ServerInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ClientInterface = packetInfo.InterfaceId
 
 	}
 }
@@ -290,8 +301,10 @@ func (f *UDPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
 		f.ServerPort = packetInfo.SrcPort
-		f.ClientInterface = packetInfo.DstInterface
-		f.ServerInterface = packetInfo.SrcInterface
+		//f.ClientInterface = packetInfo.DstInterface
+		//f.ServerInterface = packetInfo.SrcInterface
+		f.ClientInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ServerInterface = packetInfo.InterfaceId
 		f.FullClientAddr = packetInfo.FullDstIp
 		f.FullServerAddr = packetInfo.FullSrcIp
 
@@ -301,8 +314,8 @@ func (f *UDPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientPort = packetInfo.SrcPort
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
-		f.ClientInterface = packetInfo.SrcInterface
-		f.ServerInterface = packetInfo.DstInterface
+		f.ServerInterface = (packetInfo.InterfaceId + 1) % 2 // to emulate directions
+		f.ClientInterface = packetInfo.InterfaceId
 		f.FullClientAddr = packetInfo.FullSrcIp
 		f.FullServerAddr = packetInfo.FullDstIp
 	}
