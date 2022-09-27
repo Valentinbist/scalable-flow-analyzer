@@ -174,6 +174,7 @@ func (f *TCPFlow) AddPacket(packetInfo PacketInformation) {
 
 		}
 	}*/
+	/* # todo this is the real tcp options code
 	if !packetInfo.TCPSYN { // only append if not already appended for SYN as TCPOptionsClient/server
 		if packetInfo.NewTCPOptions != nil {
 			for _, option := range packetInfo.NewTCPOptions {
@@ -206,7 +207,7 @@ func (f *TCPFlow) AddPacket(packetInfo PacketInformation) {
 			}
 		}
 	}
-
+	*/
 	switch {
 	case packetInfo.TCPRST:
 		f.RSTIndex = int32(len(f.Packets) - 1)
@@ -251,6 +252,8 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 
 	case packetInfo.SrcPort <= 49151 && packetInfo.SrcPort < packetInfo.DstPort: // i send from standardized port to private port range
 		// From Server
+		f.ClientInterface = packetInfo.DstInterface
+		f.ServerInterface = packetInfo.SrcInterface
 		f.ClientAddr = packetInfo.DstIP
 		f.ClientPort = packetInfo.DstPort
 		f.ServerAddr = packetInfo.SrcIP
@@ -268,6 +271,8 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerClientUnclear = true
 		f.FullClientAddr = packetInfo.FullSrcIp
 		f.FullServerAddr = packetInfo.FullDstIp
+		f.ClientInterface = packetInfo.SrcInterface
+		f.ServerInterface = packetInfo.DstInterface
 
 	}
 }

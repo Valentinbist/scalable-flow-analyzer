@@ -41,9 +41,9 @@ func (mp *MetricProtocol) onFlush(flow *flows.Flow) ExportableValue {
 		//TCPOptionsinFlow:    flow.TCPOptionsinFlow,
 		//TCPOptionsSever:     flow.TCPOptionsSever,
 		//TCPOptionsClient:    flow.TCPOptionsClient,
-		NewTCPOptionsServer: flow.NewTCPOptionsServer,
-		NewTCPOptionsClient: flow.NewTCPOptionsClient,
-		NewTCPOptionsinFlow: flow.NewTCPOptionsinFlow,
+		//NewTCPOptionsServer: flow.NewTCPOptionsServer,
+		//NewTCPOptionsClient: flow.NewTCPOptionsClient,
+		//NewTCPOptionsinFlow: flow.NewTCPOptionsinFlow,
 		ClientInterface:     flow.ClientInterface,
 		ServerInterface:     flow.ServerInterface,
 		ServerClientUnclear: flow.ServerClientUnclear,
@@ -70,9 +70,9 @@ type ValueProtocol struct {
 	//TCPOptionsClient    []layers.TCPOption
 	//TCPOptionsinFlow    [][]layers.TCPOption
 
-	NewTCPOptionsClient []flows.CustomTCPOption
-	NewTCPOptionsServer []flows.CustomTCPOption
-	NewTCPOptionsinFlow [][]flows.CustomTCPOption
+	//NewTCPOptionsClient []flows.CustomTCPOption
+	//NewTCPOptionsServer []flows.CustomTCPOption
+	//NewTCPOptionsinFlow [][]flows.CustomTCPOption
 
 	ClientInterface     net.HardwareAddr
 	ServerInterface     net.HardwareAddr
@@ -99,10 +99,10 @@ func (vp ValueProtocol) export() map[string]interface{} {
 		"ClientInterface":     vp.ClientInterface,
 		"ServerInterface":     vp.ServerInterface,
 		"ServerClientUnclear": vp.ServerClientUnclear,
-		"NewTCPOptionsClient": vp.NewTCPOptionsClient,
-		"NewTCPOptionsServer": vp.NewTCPOptionsServer,
-		"NewTCPOptionsinFlow": vp.NewTCPOptionsinFlow,
-		"FullClientAddr":      vp.FullClientAddr,
-		"FullServerAddr":      vp.FullServerAddr,
+		//"NewTCPOptionsClient": vp.NewTCPOptionsClient,
+		//"NewTCPOptionsServer": vp.NewTCPOptionsServer,
+		//"NewTCPOptionsinFlow": vp.NewTCPOptionsinFlow,
+		"FullClientAddr": vp.FullClientAddr,
+		"FullServerAddr": vp.FullServerAddr,
 	}
 }

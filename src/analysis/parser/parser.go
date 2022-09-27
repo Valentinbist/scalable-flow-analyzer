@@ -205,7 +205,7 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					//packetInfo.TCPOptions = tcp.Options
 					//new code
 					//irerate over tcp.Options
-					if len(tcp.Options) > 0 {
+					if len(tcp.Options) > 0 && false == true {
 						var tcpOptions_to_return []flows.CustomTCPOption
 						//tcpOptions_to_return = make([]CustomTCPOption, 0)
 						for _, option := range tcp.Options {

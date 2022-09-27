@@ -45,11 +45,15 @@ func NewPacketReader(pools *pool.Pools, packetParser *parser.Parser) *PacketRead
 //
 // Returns whether the specified number of packets have been read
 func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopacket.PacketDataSource) bool {
+	spike_count := 0
 	for p.PacketIdx < packetStop {
 		data, ci, err := packetDataSource.ReadPacketData()
 		// Stop reading at end of file
 		if err == io.EOF {
 			return false
+		}
+		if ci.InterfaceIndex != 0 {
+			fmt.Println("InterfaceIndex:", ci.InterfaceIndex)
 		}
 		if p.PacketIdx == 0 {
 			p.FirstPacketTimestamp = ci.Timestamp.UnixNano()
@@ -80,11 +84,17 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 				continue
 			}
 			if p.LastPacketTimestamp-p.flushTimestamp >= flushRate*3 {
-				fmt.Println("spike?")
-				continue
+				if spike_count > 1000 { // if we have over 1000 spikes, this is not a spike but just the data i guess, so give it a try
+					fmt.Println("1000 spikes, trying to continue")
+				} else {
+					fmt.Println("spike?")
+					spike_count += 1
+					continue
+				}
 			}
 			//fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
 			p.flushTimestamp = p.LastPacketTimestamp + flushRate
+			spike_count = 0
 			// print new flush timesamp in human readable format
 			//fmt.Println("Next flush at: ", humanize.Comma(p.flushTimestamp))
 			//utils.PrintMemUsage()
