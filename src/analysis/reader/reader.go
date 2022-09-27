@@ -52,9 +52,7 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		if err == io.EOF {
 			return false
 		}
-		if ci.InterfaceIndex != 0 {
-			fmt.Println("InterfaceIndex:", ci.InterfaceIndex)
-		}
+
 		if p.PacketIdx == 0 {
 			p.FirstPacketTimestamp = ci.Timestamp.UnixNano()
 			p.flushTimestamp = p.FirstPacketTimestamp + flushRate
