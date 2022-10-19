@@ -11,7 +11,7 @@ import (
 )
 
 // NumFlowThreads defines the number of Threads (x2 (TCP & UDP)) which are responsible to add packets
-const NumFlowThreads = 12
+const NumFlowThreads = 14
 
 // AddPacketChannelSize defines the size of the channel
 const AddPacketChannelSize = 300
