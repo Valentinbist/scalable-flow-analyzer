@@ -66,6 +66,21 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 			fmt.Println("Error len0 packet")
 			continue
 		}
+
+		// check if erf type (byte 8) is 0x02 (ETH type, no extension headers), else skip packet and print error
+		if data[8] != 0x02 {
+			fmt.Println("Error: Not an ERF type 2 packet")
+			continue
+		}
+
+		// get last two bits of byte 9 (flags) to get the interface number:
+		ifdata := data[9] & 0x03
+		// check if interface is 0 or 1, else skip packet and print error
+		if ifdata != 0 && ifdata != 1 {
+			fmt.Println("Error: Not an interface 0 or 1 packet")
+			continue
+		}
+
 		p.PacketIdx++
 
 		// Setup Flushing Interval
@@ -77,8 +92,10 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 				fmt.Println("Error reading packet: ", err)
 				continue
 			} moved the error handling up */
+
+		// strip data of the first 18 bytes to remove the ERF header
 		// Parse packet
-		p.parser.ParsePacket(data, p.PacketIdx, p.LastPacketTimestamp, uint8(ci.InterfaceIndex))
+		p.parser.ParsePacket(data[18:], p.PacketIdx, p.LastPacketTimestamp, ifdata)
 		// Flush packet when flushing interval is reached
 		if p.LastPacketTimestamp > p.flushTimestamp {
 			// print flush timestamp in human readable format
