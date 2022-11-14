@@ -85,18 +85,21 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 
 			if p.LastPacketTimestamp-p.flushTimestamp >= flushRate*3 {
 				if spike_count > 1000 { // if we have over 1000 spikes, this is not a spike but just the data i guess, so give it a try
-					fmt.Println("1000 spikes, trying to continue")
+					fmt.Println("1000 spikes, trying to continue softly")
+					p.flushTimestamp = p.flushTimestamp + flushRate
 				} else {
 					fmt.Println("spike?")
 					spike_count += 1
 					continue
 				}
+			} else {
+				p.flushTimestamp = p.LastPacketTimestamp + flushRate
 			}
-			//fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
-			p.flushTimestamp = p.LastPacketTimestamp + flushRate
+			fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
+
 			spike_count = 0
 			// print new flush timesamp in human readable format
-			//fmt.Println("Next flush at: ", humanize.Comma(p.flushTimestamp))
+			fmt.Println("Next flush at: ", humanize.Comma(p.flushTimestamp))
 			//utils.PrintMemUsage()
 			//utils.CreateMemoryProfile(strconv.FormatInt(p.flushTimestamp, 10))
 			fmt.Println("Flush at packet", humanize.Comma(p.PacketIdx))

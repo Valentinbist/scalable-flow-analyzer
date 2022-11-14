@@ -32,7 +32,7 @@ const numParser = 3
 const numParserChannel = 1
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
-const flushRate = int64(20 * time.Second)
+const flushRate = int64(10 * time.Second)
 const packetStop = 100000 * million
 
 // The two different kinds of metrics one can choose by using the 'flow' flag
