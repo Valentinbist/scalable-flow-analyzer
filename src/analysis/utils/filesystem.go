@@ -51,14 +51,14 @@ func GetPcapFiles(input string) []string {
 	case DirectoryExists(input):
 		var files []string
 		fmt.Println("Use input Directory:", input)
-		err := filepath.Walk(input, func(filepath string, info os.FileInfo, err error) error {
+		err := filepath.Walk(input, func(filepathFile string, info os.FileInfo, err error) error {
 			// Skip directories and subdirectories
-			if info.IsDir() || path.Clean(path.Dir(filepath)) != path.Clean(input) {
+			if info.IsDir() || filepath.Clean(filepath.Dir(filepathFile)) != filepath.Clean(input) {
 				return nil
 			}
 			// Only append pcapng files
-			if strings.HasSuffix(info.Name(), ".pcapng") || strings.HasSuffix(info.Name(), ".pcapng.bz2") {
-				files = append(files, filepath)
+			if strings.HasSuffix(info.Name(), ".pcapng") || strings.HasSuffix(info.Name(), ".pcapng.bz2") || strings.HasSuffix(info.Name(), ".pcap") {
+				files = append(files, filepathFile)
 			}
 			return nil
 		})
