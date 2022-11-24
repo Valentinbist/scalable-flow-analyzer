@@ -221,13 +221,10 @@ func serializeMetric(metric *map[string]interface{}) *string {
 
 		}
 	}*/
-	dummy := new(LockedMetric)
-	dummy.metric = metric
-	dummy.mu.Lock()
-	b, err := json.Marshal(dummy.metric)
+
+	b, err := json.Marshal(metric)
 	//fmt.Println("marshal done")
 	//fmt.Println("")
-	dummy.mu.Unlock()
 	if err != nil {
 		fmt.Println(err.Error())
 		panic("Error during json marshalling!")

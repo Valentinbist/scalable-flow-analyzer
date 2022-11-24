@@ -87,8 +87,9 @@ func (p *pool) addTCPPackets() {
 			if tcpPacket.PacketIdx == 0 {
 				continue
 			}
-			if !p.tcpFilter[tcpPacket.SrcPort] && !p.tcpFilter[tcpPacket.DstPort] {
-				continue // todo whats up with these filters?
+			if (tcpPacket.SrcPort <= tcpPacket.DstPort && !p.tcpFilter[tcpPacket.SrcPort]) || (tcpPacket.SrcPort > tcpPacket.DstPort && !p.tcpFilter[tcpPacket.DstPort]) {
+				//if !p.tcpFilter[tcpPacket.SrcPort] && !p.tcpFilter[tcpPacket.DstPort] {
+				continue
 			}
 			p.currentTCPTime = tcpPacket.Timestamp
 			flow, flowExists := p.tcpFlows[tcpPacket.FlowKey]
@@ -137,7 +138,8 @@ func (p *pool) addUDPPackets() {
 			if udpPacket.PacketIdx == 0 {
 				continue
 			}
-			if !p.udpFilter[udpPacket.SrcPort] && !p.udpFilter[udpPacket.DstPort] {
+			if (udpPacket.SrcPort <= udpPacket.DstPort && !p.udpFilter[udpPacket.SrcPort]) || (udpPacket.SrcPort > udpPacket.DstPort && !p.udpFilter[udpPacket.DstPort]) {
+				//if !p.udpFilter[udpPacket.SrcPort] && !p.udpFilter[udpPacket.DstPort] {
 				continue
 			}
 			p.currentUDPTime = udpPacket.Timestamp
