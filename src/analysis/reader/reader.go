@@ -52,9 +52,7 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		if err == io.EOF {
 			return false
 		}
-		if ci.InterfaceIndex != 0 {
-			fmt.Println("InterfaceIndex:", ci.InterfaceIndex)
-		}
+
 		if p.PacketIdx == 0 {
 			p.FirstPacketTimestamp = ci.Timestamp.UnixNano()
 			p.flushTimestamp = p.FirstPacketTimestamp + flushRate
@@ -62,6 +60,9 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 
 		if err != nil {
 			//fmt.Println("Error reading packet: ", err) todo renable and filter out
+			continue
+		}
+		if len(data) == 0 { //sometimes packets with len 0 come thorugh although no error is thrown? these have weird timestamps
 			continue
 		}
 		p.PacketIdx++
@@ -80,20 +81,22 @@ func (p *PacketReader) Read(packetStop, flushRate int64, packetDataSource gopack
 		// Flush packet when flushing interval is reached
 		if p.LastPacketTimestamp > p.flushTimestamp {
 			// print flush timestamp in human readable format
-			if len(data) == 0 { //sometimes packets with len 0 come thorugh although no error is thrown? these have weird timestamps
-				continue
-			}
+
 			if p.LastPacketTimestamp-p.flushTimestamp >= flushRate*3 {
 				if spike_count > 1000 { // if we have over 1000 spikes, this is not a spike but just the data i guess, so give it a try
-					fmt.Println("1000 spikes, trying to continue")
+					fmt.Println("1000 spikes, trying to continue softly")
+					p.flushTimestamp = p.flushTimestamp + flushRate
+
 				} else {
 					fmt.Println("spike?")
 					spike_count += 1
 					continue
 				}
+			} else {
+				p.flushTimestamp = p.LastPacketTimestamp + flushRate
 			}
-			//fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
-			p.flushTimestamp = p.LastPacketTimestamp + flushRate
+			fmt.Println("Flushing pool at: ", humanize.Comma(p.LastPacketTimestamp))
+
 			spike_count = 0
 			// print new flush timesamp in human readable format
 			//fmt.Println("Next flush at: ", humanize.Comma(p.flushTimestamp))
