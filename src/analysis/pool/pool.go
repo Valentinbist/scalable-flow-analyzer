@@ -170,7 +170,7 @@ func (p *pool) flushTCPFlow(flow *flows.TCPFlow, force bool) bool {
 	if force || p.currentTCPTime > flow.Flow.Timeout {
 		// Ignore filtered ports
 		// Ignore incomplete flows (only SYN must be set)
-		if !p.tcpFilter[flow.ServerPort] || (p.tcpDropIncomplete && (!flow.TCPPacket[0].SYN || flow.TCPPacket[0].ACK)) {
+		if ((flow.ClientPort <= flow.ServerPort && !p.tcpFilter[flow.ClientPort]) || (flow.ClientPort > flow.ServerPort && !p.tcpFilter[flow.ServerPort])) || (p.tcpDropIncomplete && (!flow.TCPPacket[0].SYN || flow.TCPPacket[0].ACK)) {
 			return true
 		}
 
