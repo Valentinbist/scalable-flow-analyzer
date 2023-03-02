@@ -57,7 +57,7 @@ func GetPcapFiles(input string) []string {
 				return nil
 			}
 			// Only append pcapng files
-			if strings.HasSuffix(info.Name(), ".pcapng") || strings.HasSuffix(info.Name(), ".pcapng.bz2") {
+			if strings.HasSuffix(info.Name(), ".pcapng") || strings.HasSuffix(info.Name(), ".pcapng.bz2") || strings.HasSuffix(info.Name(), ".pcap") || strings.HasSuffix(info.Name(), ".pcap.gz") {
 				files = append(files, filepath)
 			}
 			return nil

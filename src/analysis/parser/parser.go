@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 	"sync"
 	"test.com/scale/src/analysis/flows"
 	"test.com/scale/src/analysis/pool"
@@ -113,9 +114,6 @@ func (p *Parser) ParsePacket(data []byte, packetIdx, packetTimestamp int64, inte
 
 // parsePacket is the internal method, called when the internal cache/buffer is full
 func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parserIndex int) {
-	var dot1q layers.Dot1Q
-	var gre layers.GRE
-	var eth layers.Ethernet
 
 	var ipv4 layers.IPv4
 	var ipv6 layers.IPv6
@@ -127,10 +125,8 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 	if p.samplingrate != 100 {
 		samplingModulo = uint64(float64(p.numFlowThreads) * (100 / p.samplingrate))
 	}
+	var err error
 
-	parser := gopacket.NewDecodingLayerParser(
-		layers.LayerTypeEthernet,
-		&dot1q, &eth, &gre, &ipv4, &ipv6, &ipv6e, &tcp, &udp)
 	parserIPv4 := gopacket.NewDecodingLayerParser(layers.LayerTypeIPv4, &ipv4, &tcp, &udp)
 	parserIPv6 := gopacket.NewDecodingLayerParser(layers.LayerTypeIPv6, &ipv6, &ipv6e, &tcp, &udp)
 	var decoded []gopacket.LayerType
@@ -140,12 +136,65 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 			if packet.PacketIdx == 0 {
 				continue
 			}
-			_ = parserIPv4.DecodeLayers(packet.Data, &decoded)
-			if len(decoded) < 2 {
-				_ = parser.DecodeLayers(packet.Data, &decoded)
-				if len(decoded) < 2 {
-					_ = parserIPv6.DecodeLayers(packet.Data, &decoded)
+			err = parserIPv4.DecodeLayers(packet.Data, &decoded)
+			// catch TCP data offset greater than packet length errr
+
+			if err != nil && (err.Error() == "TCP data offset greater than packet length" || strings.HasPrefix(err.Error(), "Invalid TCP option length")) {
+				// add TCP layer to decoded
+				decoded = append(decoded, layers.LayerTypeTCP)
+				err = nil
+			}
+
+			if err != nil && err.Error() == "Not all IP header bytes available" {
+				// add IPv4 layer to decoded
+				decoded = append(decoded, layers.LayerTypeIPv4)
+				err = nil
+			}
+
+			if err != nil && (strings.HasPrefix(err.Error(), "Invalid TCP header. Length") || strings.HasPrefix(err.Error(), "Invalid UDP header. Length")) { // indeed borken
+				err = nil
+			}
+
+			if (err != nil && err == gopacket.UnsupportedLayerType(3)) || (len(decoded) == 1 && (ipv4.Flags == layers.IPv4MoreFragments || ipv4.FragOffset != 0)) {
+				if err != nil && err == gopacket.UnsupportedLayerType(3) {
+					err = nil
 				}
+
+				if len(decoded) > 1 {
+					fmt.Println("this souldnt happen: frag", packet.PacketIdx)
+				}
+			} else if len(decoded) == 1 && ipv4.Version == 4 && (ipv4.Protocol == layers.IPProtocolTCP || ipv4.Protocol == layers.IPProtocolUDP) {
+				if err != nil && strings.HasPrefix(err.Error(), "Invalid TCP data offset") { // packet indeed broken
+					err = nil
+				}
+			}
+
+			if err != nil && !strings.HasPrefix(err.Error(), "No decoder for layer type") && !strings.HasPrefix(err.Error(), "Invalid (too small) IP header length") && !strings.HasPrefix(err.Error(), "Invalid (too small) IP length") && !strings.HasPrefix(err.Error(), "Invalid ip4 header. Length") { //ignore ip header to small since this is likely caused by ipv6 packets
+				fmt.Println("Error parsing packet v4: ", err, packet.PacketIdx)
+			}
+			// errors.New("Not all IP header bytes available") ip rein if this
+
+			if len(decoded) < 1 || (len(decoded) == 1 && ipv4.Version != 4) { // len 1 is ipv4, 2 is ip plus TCP/UDP. wont detect more if wrong ipv4 detected from real ipv6. so len will be 1
+
+				err = parserIPv6.DecodeLayers(packet.Data, &decoded)
+
+				if err != nil && (err.Error() == "TCP data offset greater than packet length" || strings.HasPrefix(err.Error(), "Invalid TCP option length")) {
+					// add TCP layer to decoded
+					decoded = append(decoded, layers.LayerTypeTCP)
+					err = nil
+				}
+
+				if err != nil && (strings.HasPrefix(err.Error(), "Invalid TCP header. Length") || strings.HasPrefix(err.Error(), "Invalid UDP header. Length")) { // indeed borken
+					err = nil
+				}
+				//print only if not "No decoder for layer type WILDCARD"
+				if err != nil && !strings.HasPrefix(err.Error(), "No decoder for layer type") && !strings.HasPrefix(err.Error(), "Invalid ip6 header. Length") {
+					fmt.Println("Error parsing packet v6: ", err, packet.PacketIdx)
+				}
+				if len(decoded) == 0 && err == nil {
+					fmt.Println("v6 parser found nothing ")
+				}
+
 			}
 			packetInfo := flows.PacketInformation{Timestamp: packet.Timestamp, PacketIdx: packet.PacketIdx, InterfaceId: packet.InterfaceID}
 			var ipLength uint16
