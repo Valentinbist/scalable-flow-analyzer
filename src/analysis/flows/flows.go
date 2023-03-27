@@ -59,6 +59,7 @@ type PacketInformation struct {
 	//NewTCPOptions []CustomTCPOption
 	FullSrcIp net.IP
 	FullDstIp net.IP
+	IpId      uint16
 }
 
 // Packet defines a TCP or UDP Packet
@@ -104,6 +105,8 @@ type Flow struct {
 	ServerClientUnclear bool
 	FullClientAddr      net.IP
 	FullServerAddr      net.IP
+	FirstPacketWasZMap  bool
+	AllPacketsZMap      bool
 }
 
 // TCPFlow is a Flow with special fields for TCP connections
@@ -155,6 +158,24 @@ func (f *Flow) addPacket(packetInfo PacketInformation) {
 		PacketIdx:     packetInfo.PacketIdx,
 		Timestamp:     packetInfo.Timestamp,
 		LengthPayload: packetInfo.PayloadLength}
+	if newPacket.FromClient {
+
+		if packetInfo.IpId == 54321 {
+			had_packet_client := false
+			for _, packet := range f.Packets {
+				if packet.FromClient {
+					had_packet_client = true
+					break
+				}
+			}
+			if had_packet_client == true {
+				f.FirstPacketWasZMap = true
+				f.AllPacketsZMap = true
+			}
+		} else if f.AllPacketsZMap == true {
+			f.AllPacketsZMap = false
+		}
+	}
 	f.Packets = append(f.Packets, newPacket)
 }
 

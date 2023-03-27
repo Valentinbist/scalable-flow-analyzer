@@ -156,6 +156,7 @@ func (p *Parser) parsePacket(channel chan [packetDataCacheSize]PacketData, parse
 					packetInfo.DstIP = xxhash.Sum64(ipv4.DstIP)
 					packetInfo.FullSrcIp = ipv4.SrcIP
 					packetInfo.FullDstIp = ipv4.DstIP
+					packetInfo.IpId = ipv4.Id
 				case layers.LayerTypeIPv6:
 					ipLength = ipv6.Length
 					// if zero
