@@ -54,11 +54,12 @@ type PacketInformation struct {
 	HasTCP        bool
 	HasUDP        bool
 	//TCPOptions    []layers.TCPOption
-	SrcInterface  net.HardwareAddr
-	DstInterface  net.HardwareAddr
-	NewTCPOptions []CustomTCPOption
-	FullSrcIp     net.IP
-	FullDstIp     net.IP
+	SrcInterface net.HardwareAddr
+	DstInterface net.HardwareAddr
+	//NewTCPOptions []CustomTCPOption
+	FullSrcIp net.IP
+	FullDstIp net.IP
+	IpId      uint16
 }
 
 // Packet defines a TCP or UDP Packet
@@ -95,15 +96,17 @@ type Flow struct {
 	Packets      []Packet
 	//TCPOptionsSever     []layers.TCPOption // these are not used ATM
 	//TCPOptionsClient    []layers.TCPOption
-	NewTCPOptionsClient []CustomTCPOption
-	NewTCPOptionsServer []CustomTCPOption
+	//NewTCPOptionsClient []CustomTCPOption
+	//ewTCPOptionsServer []CustomTCPOption
 	//TCPOptionsinFlow    [][]layers.TCPOption
-	NewTCPOptionsinFlow [][]CustomTCPOption
+	//NewTCPOptionsinFlow [][]CustomTCPOption
 	ClientInterface     net.HardwareAddr
 	ServerInterface     net.HardwareAddr
 	ServerClientUnclear bool
 	FullClientAddr      net.IP
 	FullServerAddr      net.IP
+	FirstPacketWasZMap  bool
+	AllPacketsZMap      bool
 }
 
 // TCPFlow is a Flow with special fields for TCP connections
@@ -155,6 +158,24 @@ func (f *Flow) addPacket(packetInfo PacketInformation) {
 		PacketIdx:     packetInfo.PacketIdx,
 		Timestamp:     packetInfo.Timestamp,
 		LengthPayload: packetInfo.PayloadLength}
+	if newPacket.FromClient {
+
+		if packetInfo.IpId == 54321 {
+			had_packet_client := false
+			for _, packet := range f.Packets {
+				if packet.FromClient {
+					had_packet_client = true
+					break
+				}
+			}
+			if had_packet_client == true {
+				f.FirstPacketWasZMap = true
+				f.AllPacketsZMap = true
+			}
+		} else if f.AllPacketsZMap == true {
+			f.AllPacketsZMap = false
+		}
+	}
 	f.Packets = append(f.Packets, newPacket)
 }
 
@@ -229,7 +250,7 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ServerAddr = packetInfo.DstIP
 		f.ServerPort = packetInfo.DstPort
 		//f.TCPOptionsClient = packetInfo.TCPOptions
-		f.NewTCPOptionsClient = packetInfo.NewTCPOptions
+		//f.NewTCPOptionsClient = packetInfo.NewTCPOptions
 		f.ClientInterface = packetInfo.SrcInterface
 		f.ServerInterface = packetInfo.DstInterface
 		f.ServerClientUnclear = false
@@ -246,7 +267,7 @@ func (f *TCPFlow) setClientServer(packetInfo PacketInformation) {
 		f.ClientInterface = packetInfo.DstInterface
 		f.ServerInterface = packetInfo.SrcInterface
 		f.ServerClientUnclear = false
-		f.NewTCPOptionsServer = packetInfo.NewTCPOptions
+		//f.NewTCPOptionsServer = packetInfo.NewTCPOptions
 		f.FullClientAddr = packetInfo.FullDstIp
 		f.FullServerAddr = packetInfo.FullSrcIp
 
@@ -315,4 +336,4 @@ type CustomTCPOption struct {
 	//TcpOption layers.TCPOption
 }
 */
-type CustomTCPOption = map[string]interface{}
+//type CustomTCPOption = map[string]interface{}

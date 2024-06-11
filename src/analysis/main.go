@@ -23,7 +23,7 @@ import (
 
 const million = 1000000
 
-const sortingRingBufferSize = 1.5 * million
+const sortingRingBufferSize = 4 * million
 const numParser = 3
 
 // Number of parser channels
@@ -33,7 +33,7 @@ const numParserChannel = 1
 
 // Flush every x seconds (relative to packet timestamps, not processing time)
 const flushRate = int64(20 * time.Second)
-const packetStop = 10000 * million
+const packetStop = 100000 * million
 
 // The two different kinds of metrics one can choose by using the 'flow' flag
 var standardMetric *standardMetrics.Metric
@@ -47,9 +47,9 @@ var defaultSessionTimeout, _ = time.ParseDuration("10m")
 
 //var defaultInputString = "./testdata/test.pcapng"
 
-var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\maiw_full_trace.pcap"
+//var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\maiw_full_trace.pcap"
 
-//var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
+var defaultInputString = "C:\\Users\\Valentin\\Desktop\\pcaptest\\mawi_10mill.pcapng"
 
 var input = flag.String("i", defaultInputString, "Path to .pcapng or .pcapng.gz files or to directory with these files (not in combination with --interface)")
 var interfaceName = flag.String("interface", "", "Interface name to capture packets from (not in combination with -i)")
@@ -74,7 +74,7 @@ var infoDirectory = flag.String("infoDirectory", "", "If a path is specified, th
 var clusterModelDirectory = flag.String("clusterModelDirectory", "", "If a path is specified, the analyzer will load the clustering models from this path. The models will be used for clustering.")
 var statisticTCPReconstruction = flag.Bool("statisticTCPReconstruction", false, "If set, the analyzer will include statistics about the reconstruction in the metric file. This includes sizes of the reconstructed packets as well as speed.")
 var computeFlowRRPs = flag.Bool("flowRRPs", false, "If set, the analyzer will compute the size of rrps during the flow based analysis.")
-var exportBufferSize = flag.Uint("exportBufferSize", 1000000, "Specified how many serialized flow metrics can be buffered before being written to the flow metrics json file.")
+var exportBufferSize = flag.Uint("exportBufferSize", 20000, "Specified how many serialized flow metrics can be buffered before being written to the flow metrics json file.")
 
 func createMemoryProfile(suffix string) {
 	utils.PrintMemUsage()
@@ -143,6 +143,7 @@ func main() {
 	flag.Parse()
 
 	checkFlags()
+	runtime.GOMAXPROCS(35)
 
 	if *cpuprofile != "" {
 		log.Println("Create CPU Profile")
